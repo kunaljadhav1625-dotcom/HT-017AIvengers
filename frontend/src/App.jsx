@@ -10,14 +10,14 @@ import BlockchainPage from './pages/BlockchainPage';
 // Admin Route Guard
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) return <div>Loading...</div>;
-  
+
   // Simple checks for hackathon
   if (!user || user.role !== 'admin') {
-      return <Navigate to="/login" />;
+    return <Navigate to="/login" />;
   }
-  
+
   return children;
 };
 
@@ -31,26 +31,19 @@ function App() {
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/vote" element={<VotingPage />} /> {/* Public now, controlled by ID */}
-            
+
             {/* Admin Routes */}
             <Route path="/login" element={<LoginPage />} />
-            <Route 
-              path="/results" 
-              element={
-                <AdminRoute>
-                  <ResultsPage />
-                </AdminRoute>
-              } 
-            />
-            <Route 
-              path="/blockchain" 
+            <Route path="/results" element={<ResultsPage />} />
+            <Route
+              path="/blockchain"
               element={
                 <AdminRoute>
                   <BlockchainPage />
                 </AdminRoute>
-              } 
+              }
             />
-            
+
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

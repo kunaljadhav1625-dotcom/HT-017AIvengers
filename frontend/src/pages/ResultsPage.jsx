@@ -15,7 +15,7 @@ const ResultsPage = () => {
     const [cities, setCities] = useState([]);
     const [selectedCity, setSelectedCity] = useState('All');
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
 
     // Fetch Data
     const fetchData = async () => {
@@ -100,20 +100,22 @@ const ResultsPage = () => {
                             <h1 className="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-slate-400">BHARAT E-VOTE</h1>
                             <div className="flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                                <span className="text-[10px] font-bold text-cyan-400 tracking-[0.2em] uppercase">Secure Admin System</span>
+                                <span className="text-[10px] font-bold text-cyan-400 tracking-[0.2em] uppercase">Live Election Dashboard</span>
                             </div>
                         </div>
                     </div>
 
                     <div className='flex gap-4 items-center'>
-                        <button
-                            onClick={handleReset}
-                            className="bg-red-500 hover:bg-red-600 text-white border border-red-400 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse"
-                            title="Delete All Data & Reset Election"
-                        >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span className="hidden lg:inline">RESET DEMO</span>
-                        </button>
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={handleReset}
+                                className="bg-red-500 hover:bg-red-600 text-white border border-red-400 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse"
+                                title="Delete All Data & Reset Election"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span className="hidden lg:inline">RESET DEMO</span>
+                            </button>
+                        )}
 
                         <button
                             onClick={() => navigate('/blockchain')}
@@ -123,7 +125,8 @@ const ResultsPage = () => {
                             <span className="hidden md:inline">Blockchain</span>
                         </button>
                         {/* Glowing City Filter */}
-                        <div className="hidden md:flex items-center bg-slate-900/80 border border-white/10 rounded-full p-1 pl-4 shadow-lg shadow-blue-500/5 group hover:border-blue-500/30 transition-all">
+                        {/* Glowing City Filter - Always Visible */}
+                        <div className="flex items-center bg-slate-900/80 border border-white/10 rounded-full p-1 pl-4 shadow-lg shadow-blue-500/5 group hover:border-blue-500/30 transition-all">
                             <div className="flex items-center gap-2 text-xs font-bold text-cyan-200 uppercase tracking-wider mr-2">
                                 <Filter className="w-3.5 h-3.5" /> Zone:
                             </div>
@@ -143,13 +146,15 @@ const ResultsPage = () => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => { logout(); navigate('/'); }}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all hover:scale-105 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)]"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            <span className="hidden md:inline">Log Out</span>
-                        </button>
+                        {user && (
+                            <button
+                                onClick={() => { logout(); navigate('/'); }}
+                                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all hover:scale-105 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                <span className="hidden md:inline">Log Out</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -351,13 +356,15 @@ const ResultsPage = () => {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <button
-                                onClick={() => setShowForm(!showForm)}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
-                            >
-                                {showForm ? <Trash2 className="w-4 h-4" /> : <Award className="w-4 h-4" />}
-                                {showForm ? 'Close' : 'Add New'}
-                            </button>
+                            {user?.role === 'admin' && (
+                                <button
+                                    onClick={() => setShowForm(!showForm)}
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                                >
+                                    {showForm ? <Trash2 className="w-4 h-4" /> : <Award className="w-4 h-4" />}
+                                    {showForm ? 'Close' : 'Add New'}
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -375,7 +382,7 @@ const ResultsPage = () => {
                                     <th className="p-6 text-xs font-bold text-slate-400 uppercase tracking-widest">Zone</th>
                                     <th className="p-6 text-right text-xs font-bold text-slate-400 uppercase tracking-widest">Live Votes</th>
                                     <th className="p-6 text-xs font-bold text-slate-400 uppercase tracking-widest w-1/3">Trend</th>
-                                    <th className="p-6 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                                    {user?.role === 'admin' && <th className="p-6 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -426,15 +433,17 @@ const ResultsPage = () => {
                                                 <span className="text-sm font-bold text-slate-300 w-12 text-right">{candidate.percentage}%</span>
                                             </div>
                                         </td>
-                                        <td className="p-6 text-center">
-                                            <button
-                                                onClick={() => handleDelete(candidate.id)}
-                                                className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 p-3 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                                title="Delete Candidate"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </td>
+                                        {user?.role === 'admin' && (
+                                            <td className="p-6 text-center">
+                                                <button
+                                                    onClick={() => handleDelete(candidate.id)}
+                                                    className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 p-3 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                                    title="Delete Candidate"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>

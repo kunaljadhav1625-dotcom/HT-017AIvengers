@@ -45,9 +45,14 @@ const Header = () => {
                             </button>
                         </div>
                     ) : (
-                        <Link to="/login" className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-transform hover:scale-105">
-                            Admin Login
-                        </Link>
+                        <div className="flex items-center gap-4">
+                            <Link to="/results" className="text-gray-600 hover:text-blue-600 font-medium flex items-center gap-1">
+                                <LayoutDashboard className="w-4 h-4" /> Show Results
+                            </Link>
+                            <Link to="/login" className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-transform hover:scale-105">
+                                Admin Login
+                            </Link>
+                        </div>
                     )}
                 </nav>
             </div>
