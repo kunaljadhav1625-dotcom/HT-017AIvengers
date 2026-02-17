@@ -1,12 +1,12 @@
 const db = require('../src/models/database');
 require('dotenv').config();
 
-const HOST_IP = process.env.HOST_IP || '10.211.154.209';
+const HOST_IP = process.env.HOST_IP || 'localhost';
 const PORT = process.env.PORT || 5000;
 
 // The photo to set for EVERYONE
 const TARGET_PHOTO = 'kunal.jpg';
-const PHOTO_URL = `http://${HOST_IP}:${PORT}/uploads/voters/${TARGET_PHOTO}`;
+const PHOTO_URL = `http://localhost:${PORT}/uploads/voters/${TARGET_PHOTO}`;
 
 console.log(`🔄 Updating ALL voters to use photo: ${TARGET_PHOTO}`);
 
