@@ -13,9 +13,10 @@ const api = axios.create({
 export const adminLogin = (creds) => api.post('/auth/admin-login', creds);
 
 // Voting Flow
-export const getCandidates = (city) => api.get(`/candidates?city=${city}`);
+export const getCandidates = (city) => api.get(`/candidates?city=${city || ''}`); // Allow empty city for all
+export const addCandidate = (data) => api.post('/candidates', data); // New Endpoint
 export const scanBiometric = (voterId, city) => api.post('/verify-biometric', { voterId, city });
-export const castVote = (candidateId, voterId) => api.post('/vote', { candidateId, voterId }); // Updated to send voterId
+export const castVote = (candidateId, voterId) => api.post('/vote', { candidateId, voterId });
 
 // Results APIs
 export const getResults = () => api.get('/results');

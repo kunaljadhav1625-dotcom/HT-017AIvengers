@@ -1,21 +1,34 @@
 import { useState, useEffect } from 'react';
-import { getResults } from '../services/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getResults, getBlockchain, verifyBlockchain } from '../services/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Shield, AlertTriangle, Users, BookOpen } from 'lucide-react';
+import AddCandidateForm from '../components/admin/AddCandidateForm'; // Import the new form
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const ResultsPage = () => {
     const [results, setResults] = useState(null);
+    const [blockchainInfo, setBlockchainInfo] = useState(null);
+    const [isValid, setIsValid] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchResults();
+        fetchData();
     }, []);
 
-    const fetchResults = async () => {
+    const fetchData = async () => {
         try {
-            const response = await getResults();
-            setResults(response.data);
+            setLoading(true);
+            const [resData, chainData, verifyData] = await Promise.all([
+                getResults(),
+                getBlockchain(),
+                verifyBlockchain()
+            ]);
+            setResults(resData.data);
+            setBlockchainInfo(chainData.data);
+            setIsValid(verifyData.data.isValid);
         } catch (error) {
-            console.error('Failed to fetch results:', error);
+            console.error("Error fetching admin data:", error);
         } finally {
             setLoading(false);
         }
@@ -23,66 +36,107 @@ const ResultsPage = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-12">
-            <h1 className="text-4xl font-bold text-white text-center mb-8">Election Results</h1>
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-3xl font-bold mb-8 text-white">Election Dashboard</h1>
 
-            <div className="card max-w-6xl mx-auto">
-                <div className="grid grid-cols-3 gap-4 mb-8">
-                    <div className="bg-blue-100 p-6 rounded-lg text-center">
-                        <div className="text-3xl font-bold text-blue-600">{results?.totalVotes}</div>
-                        <div className="text-gray-600">Total Votes</div>
-                    </div>
-                    <div className="bg-green-100 p-6 rounded-lg text-center">
-                        <div className="text-3xl font-bold text-green-600">{results?.candidates.length}</div>
-                        <div className="text-gray-600">Candidates</div>
-                    </div>
-                    <div className="bg-purple-100 p-6 rounded-lg text-center">
-                        <div className="text-3xl font-bold text-purple-600">
-                            {results?.blockchainValid ? '✓ Valid' : '✗ Invalid'}
+            {/* 1. Add Candidate Section */}
+            <div className="mb-8">
+                <AddCandidateForm onCandidateAdded={fetchData} />
+            </div>
+
+            {/* 2. Key Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/20 rounded-full">
+                            <Users className="w-8 h-8" />
                         </div>
-                        <div className="text-gray-600">Blockchain Status</div>
+                        <div>
+                            <p className="text-blue-100">Total Votes</p>
+                            <h3 className="text-3xl font-bold">{results?.totalVotes || 0}</h3>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mb-8">
-                    <h2 className="text-2xl font-bold mb-4">Vote Distribution</h2>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={results?.candidates}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="votes" fill="#6366f1" />
-                        </BarChart>
-                    </ResponsiveContainer>
+                <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/20 rounded-full">
+                            <BookOpen className="w-8 h-8" />
+                        </div>
+                        <div>
+                            <p className="text-purple-100">Total Blocks</p>
+                            <h3 className="text-3xl font-bold">{blockchainInfo?.length || 0}</h3>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <h2 className="text-2xl font-bold mb-4">Detailed Results</h2>
-                    <div className="space-y-4">
-                        {results?.candidates.map((candidate, index) => (
-                            <div key={candidate.id} className="flex items-center justify-between border-b pb-4">
-                                <div className="flex items-center space-x-4">
-                                    <div className="text-2xl font-bold text-gray-400">#{index + 1}</div>
-                                    <div>
-                                        <div className="font-bold">{candidate.name}</div>
-                                        <div className="text-sm text-gray-600">{candidate.party}</div>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-2xl font-bold text-primary">{candidate.votes}</div>
-                                    <div className="text-sm text-gray-600">{candidate.percentage}%</div>
-                                </div>
-                            </div>
-                        ))}
+                <div className={`card text-white ${isValid ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-red-500 to-red-600'}`}>
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/20 rounded-full">
+                            {isValid ? <Shield className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
+                        </div>
+                        <div>
+                            <p className="text-green-100">Blockchain Status</p>
+                            <h3 className="text-xl font-bold">{isValid ? 'Secure & Valid' : 'TAMPERED!'}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. Charts & Data */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div className="card">
+                    <h3 className="text-xl font-bold mb-6 text-gray-800">Vote Distribution</h3>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={results?.candidates}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="voteCount" fill="#4f46e5" name="Votes" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="card">
+                    <h3 className="text-xl font-bold mb-6 text-gray-800">Detailed Breakdown</h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-200">
+                                    <th className="py-2 px-4 text-gray-600">Candidate</th>
+                                    <th className="py-2 px-4 text-gray-600">Party</th>
+                                    <th className="py-2 px-4 text-gray-600">City</th>
+                                    <th className="py-2 px-4 text-gray-600 text-right">Votes</th>
+                                    <th className="py-2 px-4 text-gray-600 text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {results?.candidates.map((candidate, index) => (
+                                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="py-3 px-4 font-medium">{candidate.name}</td>
+                                        <td className="py-3 px-4 text-gray-500">{candidate.party}</td>
+                                        <td className="py-3 px-4 text-gray-500">{candidate.city}</td>
+                                        <td className="py-3 px-4 text-right font-bold">{candidate.voteCount}</td>
+                                        <td className="py-3 px-4 text-right text-gray-500">
+                                            {results.totalVotes > 0
+                                                ? ((candidate.voteCount / results.totalVotes) * 100).toFixed(1)
+                                                : 0}%
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

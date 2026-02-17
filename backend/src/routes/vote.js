@@ -7,7 +7,14 @@ router.get('/candidates', (req, res) => {
     const { city } = req.query;
 
     if (!city) {
-        return res.status(400).json({ error: "City is required" });
+        // If no city, return ALL (for admin dashboard potentially) or filter
+        // If we want all, we can allow empty city or add a different endpoint
+        // Let's allow empty city to fetch all
+        db.all('SELECT * FROM candidates ORDER BY city, id', [], (err, candidates) => {
+            if (err) return res.status(500).json({ error: 'Failed to fetch candidates' });
+            res.json(candidates);
+        });
+        return;
     }
 
     db.all('SELECT * FROM candidates WHERE city = ? ORDER BY id', [city], (err, candidates) => {
@@ -18,13 +25,36 @@ router.get('/candidates', (req, res) => {
     });
 });
 
+// Add NEW Candidate (Admin Only)
+router.post('/candidates', (req, res) => {
+    const { name, party, city, image } = req.body;
+
+    if (!name || !party || !city) {
+        return res.status(400).json({ error: 'Name, Party, and City are required' });
+    }
+
+    db.run(
+        'INSERT INTO candidates (name, party, city, image) VALUES (?, ?, ?, ?)',
+        [name, party, city, image || ''],
+        function (err) {
+            if (err) return res.status(500).json({ error: 'Failed to add candidate' });
+            res.json({ message: 'Candidate added successfully', id: this.lastID });
+        }
+    );
+});
+
 // Verify Voter & Biometrics (Simulated)
 router.post('/verify-biometric', (req, res) => {
+    // ... existing Verify logic ...
     const { voterId, city } = req.body;
 
     // Simulate looking up in Govt Database
     db.get('SELECT * FROM voters WHERE voter_id = ? AND city = ?', [voterId, city], (err, voter) => {
         if (!voter) {
+            // For hackathon flexibility, let's create the voter if they don't exist in that city,
+            // or return error. The prompt implies "Government Database", so maybe strictly enforce?
+            // "Tempary database add kar" implies user registers OR we add them on the fly.
+            // Let's stick to strict for now as we seeded data.
             return res.status(404).json({ error: 'Voter not found in Government Database for this City' });
         }
 
@@ -43,6 +73,7 @@ router.post('/verify-biometric', (req, res) => {
 
 // Cast vote (No JWT required, just valid Voter ID simulation)
 router.post('/vote', (req, res) => {
+    // ... existing Vote logic ...
     try {
         const { candidateId, voterId } = req.body;
 
