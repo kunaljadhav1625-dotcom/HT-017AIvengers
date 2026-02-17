@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getResults, getBlockchain, verifyBlockchain } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Shield, AlertTriangle, Users, BookOpen } from 'lucide-react';
-import AddCandidateForm from '../components/admin/AddCandidateForm'; // Import the new form
+import AddCandidateForm from '../components/admin/AddCandidateForm';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -116,6 +116,7 @@ const ResultsPage = () => {
                                 <tr className="border-b border-gray-200">
                                     <th className="py-2 px-4 text-gray-600">Candidate</th>
                                     <th className="py-2 px-4 text-gray-600">Party</th>
+                                    <th className="py-2 px-4 text-gray-600">State</th>
                                     <th className="py-2 px-4 text-gray-600">City</th>
                                     <th className="py-2 px-4 text-gray-600 text-right">Votes</th>
                                     <th className="py-2 px-4 text-gray-600 text-right">%</th>
@@ -126,6 +127,7 @@ const ResultsPage = () => {
                                     <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="py-3 px-4 font-medium">{candidate.name}</td>
                                         <td className="py-3 px-4 text-gray-500">{candidate.party}</td>
+                                        <td className="py-3 px-4 text-gray-500">{candidate.state}</td>
                                         <td className="py-3 px-4 text-gray-500">{candidate.city}</td>
                                         <td className="py-3 px-4 text-right font-bold">{candidate.voteCount}</td>
                                         <td className="py-3 px-4 text-right text-gray-500">

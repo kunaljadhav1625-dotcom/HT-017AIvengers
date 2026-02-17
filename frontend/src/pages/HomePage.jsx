@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getStates, getCities, getVillages } from '../services/api';
+import { getStates, getCities, getVillages, checkVoterStatus } from '../services/api'; // Ensure checkVoterStatus is imported
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle, CheckCircle, Loader } from 'lucide-react';
 
 const HomePage = () => {
     const [states, setStates] = useState([]);
@@ -13,6 +14,8 @@ const HomePage = () => {
 
     const [voterId, setVoterId] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(''); // New Error State
+
     const navigate = useNavigate();
 
     // Load States on Mount
@@ -25,7 +28,7 @@ const HomePage = () => {
         if (selectedState) {
             getCities(selectedState).then(res => {
                 setCities(res.data);
-                setSelectedCity(''); // Reset dependent fields
+                setSelectedCity('');
                 setVillages([]);
                 setSelectedVillage('');
             }).catch(err => console.error(err));
@@ -49,17 +52,40 @@ const HomePage = () => {
 
     const handleStart = async (e) => {
         e.preventDefault();
-        if (!selectedCity || !voterId) return;
+        setError(''); // Clear previous errors
+
+        if (!selectedCity || !voterId) {
+            setError("Please select all fields and enter Voter ID.");
+            return;
+        }
 
         setLoading(true);
         try {
-            // In a real app we might verify ID here, but for now we pass state to Voting Page
-            // and do the verification there or let them view candidates first
-            // verify city/village if needed, but primarily city is used for candidate lookup
-            if (!selectedCity) return alert("Please select a city");
+            // STEP 1: Check if Voter Exists & Has Voted
+            const statusRes = await checkVoterStatus(voterId);
+            const { exists, hasVoted, city } = statusRes.data;
+
+            if (!exists) {
+                setError("❌ Invalid Voter ID. Not found in database.");
+                setLoading(false);
+                return;
+            }
+
+            if (hasVoted) {
+                setError("⚠️ ACCESS DENIED: You have ALREADY voted.");
+                setLoading(false);
+                return;
+            }
+
+            // STEP 2: Proceed if Eligible
             navigate(`/vote?city=${selectedCity}&voterId=${voterId}`);
         } catch (error) {
-            alert("Error starting session");
+            console.error(error);
+            if (error.response && error.response.status === 404) {
+                setError("❌ Invalid Voter ID. Please check and try again.");
+            } else {
+                setError("⚠️ Server Error. Please try again.");
+            }
         } finally {
             setLoading(false);
         }
@@ -119,19 +145,38 @@ const HomePage = () => {
 
                     <div>
                         <label className="block text-gray-700 font-semibold mb-2">Enter Voter ID Number</label>
-                        <input
-                            type="text"
-                            className="input uppercase"
-                            placeholder="Ex: MUM-001"
-                            value={voterId}
-                            onChange={(e) => setVoterId(e.target.value)}
-                            required
-                        />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className={`input uppercase pr-10 ${error ? 'border-red-500 focus:ring-red-200' : ''}`}
+                                placeholder="Ex: PUN-001"
+                                value={voterId}
+                                onChange={(e) => {
+                                    setVoterId(e.target.value);
+                                    setError(''); // Clear error on type
+                                }}
+                                required
+                            />
+                            {loading && (
+                                <div className="absolute right-3 top-3">
+                                    <Loader className="w-5 h-5 animate-spin text-blue-500" />
+                                </div>
+                            )}
+                        </div>
+                        {error && (
+                            <div className="flex items-center gap-2 mt-2 text-red-600 text-sm font-bold animate-pulse">
+                                <AlertCircle className="w-4 h-4" />
+                                {error}
+                            </div>
+                        )}
+                        {!error && (
+                            <p className="text-xs text-gray-500 mt-1">Note: One Vote Per ID. Strict Enforcement.</p>
+                        )}
                     </div>
 
                     <button
                         type="submit"
-                        className="btn bg-blue-600 text-white w-full hover:bg-blue-700 text-lg py-4 shadow-lg transform hover:-translate-y-1 transition-all"
+                        className={`btn w-full text-lg py-4 shadow-lg transform transition-all ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1'}`}
                         disabled={loading}
                     >
                         {loading ? 'Verifying...' : 'Proceed to Vote ➔'}

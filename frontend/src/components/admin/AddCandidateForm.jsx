@@ -1,31 +1,68 @@
-import { useState } from 'react';
-import { addCandidate } from '../../services/api';
+import { useState, useEffect } from 'react';
+import { addCandidate, getStates, getCities, getVillages } from '../../services/api';
 import { PlusCircle } from 'lucide-react';
 
 const AddCandidateForm = ({ onCandidateAdded }) => {
     const [formData, setFormData] = useState({
         name: '',
         party: '',
+        state: '',
         city: '',
+        village: '',
         image: ''
     });
+
+    // Dropdown Data
+    const [states, setStates] = useState([]);
+    const [cities, setCities] = useState([]);
+    const [villages, setVillages] = useState([]);
+
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    const cities = ['Mumbai', 'Pune', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata'];
+    // Load States
+    useEffect(() => {
+        getStates().then(res => setStates(res.data)).catch(console.error);
+    }, []);
+
+    // Load Cities
+    useEffect(() => {
+        if (formData.state) {
+            getCities(formData.state).then(res => setCities(res.data)).catch(console.error);
+            setFormData(prev => ({ ...prev, city: '', village: '' }));
+        } else {
+            setCities([]);
+        }
+    }, [formData.state]);
+
+    // Load Villages
+    useEffect(() => {
+        if (formData.city) {
+            getVillages(formData.city).then(res => setVillages(res.data)).catch(console.error);
+            setFormData(prev => ({ ...prev, village: '' }));
+        } else {
+            setVillages([]);
+        }
+    }, [formData.city]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage('');
 
+        if (!formData.state || !formData.city) {
+            setMessage('State and City are required.');
+            return;
+        }
+
         try {
             await addCandidate(formData);
             setMessage('Candidate added successfully!');
-            setFormData({ name: '', party: '', city: '', image: '' });
+            // Reset Form (Resetting all fields for a fresh entry)
+            setFormData({ name: '', party: '', state: '', city: '', village: '', image: '' });
             if (onCandidateAdded) onCandidateAdded();
         } catch (error) {
-            setMessage('Failed to add candidate.');
+            setMessage(error.response?.data?.error || 'Failed to add candidate.');
         } finally {
             setLoading(false);
         }
@@ -65,6 +102,22 @@ const AddCandidateForm = ({ onCandidateAdded }) => {
                         required
                     />
                 </div>
+
+                {/* State Dropdown */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">State</label>
+                    <select
+                        className="input"
+                        value={formData.state}
+                        onChange={e => setFormData({ ...formData, state: e.target.value })}
+                        required
+                    >
+                        <option value="">Select State</option>
+                        {states.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                </div>
+
+                {/* City Dropdown */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700">City</label>
                     <select
@@ -72,11 +125,27 @@ const AddCandidateForm = ({ onCandidateAdded }) => {
                         value={formData.city}
                         onChange={e => setFormData({ ...formData, city: e.target.value })}
                         required
+                        disabled={!formData.state}
                     >
                         <option value="">Select City</option>
                         {cities.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </div>
+
+                {/* Village Dropdown */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Village/Area (Optional)</label>
+                    <select
+                        className="input"
+                        value={formData.village}
+                        onChange={e => setFormData({ ...formData, village: e.target.value })}
+                        disabled={!formData.city || villages.length === 0}
+                    >
+                        <option value="">Select Village</option>
+                        {villages.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                </div>
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Image URL</label>
                     <input

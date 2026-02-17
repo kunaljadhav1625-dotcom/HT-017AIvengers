@@ -1,18 +1,28 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const mysql = require('mysql2/promise');
+require('dotenv').config(); // Load .env for DB credentials
 
-const dbPath = path.join(__dirname, '../../database.db');
-const db = new sqlite3.Database(dbPath);
+async function resetDatabase() {
+    try {
+        console.log("🧹 Connecting to MySQL to RESET tables...");
+        const connection = await mysql.createConnection({
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASS || 'root',
+            database: process.env.DB_NAME || 'evoting_db'
+        });
 
-console.log('🗑️  Dropping all tables to reset schema...');
+        const tables = ['votes', 'candidates', 'voters', 'locations', 'audit_log'];
 
-db.serialize(() => {
-    db.run('DROP TABLE IF EXISTS voters');
-    db.run('DROP TABLE IF EXISTS candidates');
-    db.run('DROP TABLE IF EXISTS votes');
-    db.run('DROP TABLE IF EXISTS admins');
-    // Audit log can stay or go
-    db.run('DROP TABLE IF EXISTS audit_log');
+        for (const table of tables) {
+            console.log(`🔥 Dropping table: ${table}`);
+            await connection.query(`DROP TABLE IF EXISTS ${table}`);
+        }
 
-    console.log('✅ Tables dropped. Please restart the server to recreate them with new schema.');
-});
+        console.log("✅ All tables dropped. Database is clean.");
+        await connection.end();
+    } catch (error) {
+        console.error("❌ Reset Error:", error.message);
+    }
+}
+
+resetDatabase();

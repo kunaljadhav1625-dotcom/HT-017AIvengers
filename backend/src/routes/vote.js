@@ -2,14 +2,28 @@ const express = require('express');
 const db = require('../models/database');
 const router = express.Router();
 
-// Get candidates by CITY
+// 1. Check Voter Status (New Endpoint for Home Page Logic)
+router.get('/status/:voterId', (req, res) => {
+    const { voterId } = req.params;
+    db.get('SELECT has_voted, name, city, biometric_hash FROM voters WHERE voter_id = ?', [voterId], (err, row) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        if (!row) return res.status(404).json({ error: 'Voter ID not found in Government Database' });
+
+        res.json({
+            exists: true,
+            hasVoted: row.has_voted === 1,
+            name: row.name,
+            city: row.city,
+            photoUrl: row.biometric_hash // Stored photo URL
+        });
+    });
+});
+
+// 2. Get candidates (By City or All)
 router.get('/candidates', (req, res) => {
     const { city } = req.query;
 
     if (!city) {
-        // If no city, return ALL (for admin dashboard potentially) or filter
-        // If we want all, we can allow empty city or add a different endpoint
-        // Let's allow empty city to fetch all
         db.all('SELECT * FROM candidates ORDER BY city, id', [], (err, candidates) => {
             if (err) return res.status(500).json({ error: 'Failed to fetch candidates' });
             res.json(candidates);
@@ -25,18 +39,34 @@ router.get('/candidates', (req, res) => {
     });
 });
 
-// Verify Voter & Biometrics (Simulated)
+// 3. Add Candidate (Admin) - RESTORED
+router.post('/candidates', (req, res) => {
+    const { name, party, state, city, village, image } = req.body;
+
+    // Minimal validation
+    if (!name || !party || !city || !state) {
+        return res.status(400).json({ error: 'Name, Party, State, and City are required' });
+    }
+
+    db.run(
+        'INSERT INTO candidates (name, party, state, city, village, image) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, party, state, city, village || '', image || ''],
+        function (err) {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Failed to add candidate' });
+            }
+            res.json({ message: 'Candidate added successfully', id: this.lastID });
+        }
+    );
+});
+
+// 4. Verify Voter & Biometrics (Simulated)
 router.post('/verify-biometric', (req, res) => {
-    // ... existing Verify logic ...
     const { voterId, city } = req.body;
 
-    // Simulate looking up in Govt Database
     db.get('SELECT * FROM voters WHERE voter_id = ? AND city = ?', [voterId, city], (err, voter) => {
         if (!voter) {
-            // For hackathon flexibility, let's create the voter if they don't exist in that city,
-            // or return error. The prompt implies "Government Database", so maybe strictly enforce?
-            // "Tempary database add kar" implies user registers OR we add them on the fly.
-            // Let's stick to strict for now as we seeded data.
             return res.status(404).json({ error: 'Voter not found in Government Database for this City' });
         }
 
@@ -44,7 +74,6 @@ router.post('/verify-biometric', (req, res) => {
             return res.status(403).json({ error: 'Voter has already cast a vote!' });
         }
 
-        // Simulate biometric match success
         res.json({
             success: true,
             message: "Biometric Verification Successful (Face ID Matched)",
@@ -53,9 +82,8 @@ router.post('/verify-biometric', (req, res) => {
     });
 });
 
-// Cast vote (No JWT required, just valid Voter ID simulation)
+// 5. Cast Vote
 router.post('/vote', (req, res) => {
-    // ... existing Vote logic ...
     try {
         const { candidateId, voterId } = req.body;
 
@@ -63,24 +91,15 @@ router.post('/vote', (req, res) => {
             return res.status(400).json({ error: 'Candidate ID and Voter ID required' });
         }
 
-        // Double check if user already voted
         db.get('SELECT has_voted, name FROM voters WHERE voter_id = ?', [voterId], (err, voter) => {
-            if (!voter) {
-                return res.status(404).json({ error: 'Voter not found' });
-            }
-            if (voter.has_voted === 1) {
-                return res.status(400).json({ error: 'You have already voted' });
-            }
+            if (!voter) return res.status(404).json({ error: 'Voter not found' });
+            if (voter.has_voted === 1) return res.status(400).json({ error: 'You have already voted' });
 
-            // Verify candidate exists
             db.get('SELECT * FROM candidates WHERE id = ?', [candidateId], (err, candidate) => {
-                if (!candidate) {
-                    return res.status(404).json({ error: 'Candidate not found' });
-                }
+                if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
 
-                // Add vote to blockchain
                 const voteData = {
-                    voterId: voterId, // Anonymized
+                    voterId: voterId,
                     candidateId: candidateId,
                     candidateName: candidate.name,
                     city: candidate.city,
@@ -89,19 +108,14 @@ router.post('/vote', (req, res) => {
 
                 const block = global.blockchain.addBlock(voteData);
 
-                // Record vote in database
                 db.run(
                     'INSERT INTO votes (voter_id, candidate_id, block_hash, block_index) VALUES (?, ?, ?, ?)',
                     [voterId, candidateId, block.hash, block.index],
                     function (err) {
-                        if (err) {
-                            return res.status(500).json({ error: 'Failed to record vote' });
-                        }
+                        if (err) return res.status(500).json({ error: 'Failed to record vote' });
 
-                        // Mark voter as having voted
                         db.run('UPDATE voters SET has_voted = 1 WHERE voter_id = ?', [voterId]);
 
-                        // Log action
                         db.run('INSERT INTO audit_log (action, user_id, details) VALUES (?, ?, ?)',
                             ['VOTE', voterId, `Voted for ${candidate.name} in ${candidate.city}`]);
 
