@@ -1,16 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const path = require('path');
 
 const Blockchain = require('./blockchain/Blockchain');
-const db = require('./models/database');
+const db = require('./models/database'); // This initializes tables
 
 // Routes
 const authRoutes = require('./routes/auth');
 const voteRoutes = require('./routes/vote');
 const resultsRoutes = require('./routes/results');
 const blockchainRoutes = require('./routes/blockchain');
-const adminRoutes = require('./routes/admin'); // Import admin routes
+const adminRoutes = require('./routes/admin');
+const locationRoutes = require('./routes/locations'); // NEW
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,7 +29,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api', voteRoutes);
 app.use('/api', resultsRoutes);
 app.use('/api/blockchain', blockchainRoutes);
-app.use('/api/admin', adminRoutes); // Use admin routes
+app.use('/api/admin', adminRoutes);
+app.use('/api/locations', locationRoutes); // NEW
+
+// Serve static files (optional, for images if needed locally)
+// app.use('/uploads', express.static('uploads'));
 
 // Health check
 app.get('/api/health', (req, res) => {
