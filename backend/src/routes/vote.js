@@ -18,6 +18,36 @@ router.get('/candidates', (req, res) => {
     });
 });
 
+// Get all states
+router.get('/locations/states', (req, res) => {
+    db.all('SELECT DISTINCT state FROM locations ORDER BY state', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows.map(r => r.state));
+    });
+});
+
+// Get cities in a state
+router.get('/locations/cities', (req, res) => {
+    const { state } = req.query;
+    if (!state) return res.status(400).json({ error: "State is required" });
+
+    db.all('SELECT DISTINCT city FROM locations WHERE state = ? ORDER BY city', [state], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows.map(r => r.city));
+    });
+});
+
+// Get villages in a city
+router.get('/locations/villages', (req, res) => {
+    const { city } = req.query;
+    if (!city) return res.status(400).json({ error: "City is required" });
+
+    db.all('SELECT DISTINCT village FROM locations WHERE city = ? ORDER BY village', [city], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows.map(r => r.village));
+    });
+});
+
 // Verify Voter & Biometrics (Simulated)
 router.post('/verify-biometric', (req, res) => {
     const { voterId, city } = req.body;
