@@ -1,12 +1,16 @@
 const express = require('express');
 const db = require('../models/database');
-const authMiddleware = require('../middleware/auth');
-
 const router = express.Router();
 
-// Get all candidates
+// Get candidates by CITY
 router.get('/candidates', (req, res) => {
-    db.all('SELECT * FROM candidates ORDER BY id', (err, candidates) => {
+    const { city } = req.query;
+
+    if (!city) {
+        return res.status(400).json({ error: "City is required" });
+    }
+
+    db.all('SELECT * FROM candidates WHERE city = ? ORDER BY id', [city], (err, candidates) => {
         if (err) {
             return res.status(500).json({ error: 'Failed to fetch candidates' });
         }
@@ -14,18 +18,43 @@ router.get('/candidates', (req, res) => {
     });
 });
 
-// Cast vote
-router.post('/vote', authMiddleware, (req, res) => {
-    try {
-        const { candidateId } = req.body;
-        const voterId = req.user.voterId;
+// Verify Voter & Biometrics (Simulated)
+router.post('/verify-biometric', (req, res) => {
+    const { voterId, city } = req.body;
 
-        if (!candidateId) {
-            return res.status(400).json({ error: 'Candidate ID required' });
+    // Simulate looking up in Govt Database
+    db.get('SELECT * FROM voters WHERE voter_id = ? AND city = ?', [voterId, city], (err, voter) => {
+        if (!voter) {
+            return res.status(404).json({ error: 'Voter not found in Government Database for this City' });
         }
 
-        // Check if user already voted
-        db.get('SELECT has_voted FROM voters WHERE voter_id = ?', [voterId], (err, voter) => {
+        if (voter.has_voted === 1) {
+            return res.status(403).json({ error: 'Voter has already cast a vote!' });
+        }
+
+        // Simulate biometric match success
+        res.json({
+            success: true,
+            message: "Biometric Verification Successful (Face ID Matched)",
+            voterName: voter.name
+        });
+    });
+});
+
+// Cast vote (No JWT required, just valid Voter ID simulation)
+router.post('/vote', (req, res) => {
+    try {
+        const { candidateId, voterId } = req.body;
+
+        if (!candidateId || !voterId) {
+            return res.status(400).json({ error: 'Candidate ID and Voter ID required' });
+        }
+
+        // Double check if user already voted
+        db.get('SELECT has_voted, name FROM voters WHERE voter_id = ?', [voterId], (err, voter) => {
+            if (!voter) {
+                return res.status(404).json({ error: 'Voter not found' });
+            }
             if (voter.has_voted === 1) {
                 return res.status(400).json({ error: 'You have already voted' });
             }
@@ -38,9 +67,10 @@ router.post('/vote', authMiddleware, (req, res) => {
 
                 // Add vote to blockchain
                 const voteData = {
-                    voterId: voterId, // In production, this would be hashed for anonymity
+                    voterId: voterId, // Anonymized
                     candidateId: candidateId,
                     candidateName: candidate.name,
+                    city: candidate.city,
                     timestamp: new Date().toISOString()
                 };
 
@@ -60,7 +90,7 @@ router.post('/vote', authMiddleware, (req, res) => {
 
                         // Log action
                         db.run('INSERT INTO audit_log (action, user_id, details) VALUES (?, ?, ?)',
-                            ['VOTE', voterId, `Voted for candidate ${candidateId}`]);
+                            ['VOTE', voterId, `Voted for ${candidate.name} in ${candidate.city}`]);
 
                         res.json({
                             message: 'Vote recorded successfully',

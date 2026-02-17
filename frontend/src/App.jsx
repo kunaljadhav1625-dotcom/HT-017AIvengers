@@ -2,23 +2,23 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/layout/Header';
 import LoginPage from './pages/LoginPage';
-// Import placeholders
 import HomePage from './pages/HomePage';
-import RegisterPage from './pages/RegisterPage';
 import VotingPage from './pages/VotingPage';
 import ResultsPage from './pages/ResultsPage';
 import BlockchainPage from './pages/BlockchainPage';
 
-const ProtectedRoute = ({ children }) => {
+// Admin Route Guard
+const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-    </div>;
+  
+  if (loading) return <div>Loading...</div>;
+  
+  // Simple checks for hackathon
+  if (!user || user.role !== 'admin') {
+      return <Navigate to="/login" />;
   }
-
-  return user ? children : <Navigate to="/login" />;
+  
+  return children;
 };
 
 function App() {
@@ -28,19 +28,31 @@ function App() {
         <div className="min-h-screen">
           <Header />
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
+            <Route path="/vote" element={<VotingPage />} /> {/* Public now, controlled by ID */}
+            
+            {/* Admin Routes */}
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route
-              path="/vote"
+            <Route 
+              path="/results" 
               element={
-                <ProtectedRoute>
-                  <VotingPage />
-                </ProtectedRoute>
-              }
+                <AdminRoute>
+                  <ResultsPage />
+                </AdminRoute>
+              } 
             />
-            <Route path="/results" element={<ResultsPage />} />
-            <Route path="/blockchain" element={<BlockchainPage />} />
+            <Route 
+              path="/blockchain" 
+              element={
+                <AdminRoute>
+                  <BlockchainPage />
+                </AdminRoute>
+              } 
+            />
+            
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
       </BrowserRouter>
