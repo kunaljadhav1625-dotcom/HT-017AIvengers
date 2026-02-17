@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getResults, deleteCandidate } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Trash2, LogOut, TrendingUp, Award, MapPin, Users, Activity, Crown, Search, Filter, ShieldCheck, Zap } from 'lucide-react';
+import { Trash2, LogOut, TrendingUp, Award, MapPin, Users, Activity, Crown, Search, Filter, ShieldCheck, Zap, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import AddCandidateForm from '../components/admin/AddCandidateForm';
 
 const ResultsPage = () => {
@@ -14,6 +15,7 @@ const ResultsPage = () => {
     const [cities, setCities] = useState([]);
     const [selectedCity, setSelectedCity] = useState('All');
     const navigate = useNavigate();
+    const { logout } = useAuth();
 
     // Fetch Data
     const fetchData = async () => {
@@ -46,6 +48,19 @@ const ResultsPage = () => {
                 fetchData();
             } catch (err) {
                 alert("Failed to delete candidate");
+            }
+        }
+    };
+
+    const handleReset = async () => {
+        if (window.confirm("⚠️ DANGER ZONE: This will RESET the entire election.\\n\\nALL VOTES and BLOCKCHAIN HISTORY will be deleted.\\n\\nDo you want to proceed for a fresh demo?")) {
+            try {
+                await axios.post('http://localhost:5000/api/vote/reset');
+                alert("Election Reset Successfully! You can now start a fresh demo.");
+                fetchData();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to reset election.");
             }
         }
     };
@@ -91,6 +106,22 @@ const ResultsPage = () => {
                     </div>
 
                     <div className='flex gap-4 items-center'>
+                        <button
+                            onClick={handleReset}
+                            className="bg-red-500 hover:bg-red-600 text-white border border-red-400 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse"
+                            title="Delete All Data & Reset Election"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span className="hidden lg:inline">RESET DEMO</span>
+                        </button>
+
+                        <button
+                            onClick={() => navigate('/blockchain')}
+                            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all hover:scale-105"
+                        >
+                            <ShieldCheck className="w-4 h-4" />
+                            <span className="hidden md:inline">Blockchain</span>
+                        </button>
                         {/* Glowing City Filter */}
                         <div className="hidden md:flex items-center bg-slate-900/80 border border-white/10 rounded-full p-1 pl-4 shadow-lg shadow-blue-500/5 group hover:border-blue-500/30 transition-all">
                             <div className="flex items-center gap-2 text-xs font-bold text-cyan-200 uppercase tracking-wider mr-2">
@@ -113,11 +144,11 @@ const ResultsPage = () => {
                         </div>
 
                         <button
-                            onClick={() => navigate('/')}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all hover:scale-105"
+                            onClick={() => { logout(); navigate('/'); }}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-5 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all hover:scale-105 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)]"
                         >
                             <LogOut className="w-4 h-4" />
-                            <span className="hidden md:inline">Exit</span>
+                            <span className="hidden md:inline">Log Out</span>
                         </button>
                     </div>
                 </div>

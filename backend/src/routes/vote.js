@@ -3,6 +3,7 @@ const db = require('../models/database');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Blockchain = require('../blockchain/Blockchain'); // Required for Reset Logic
 
 // Configure Multer
 const storage = multer.diskStorage({
@@ -243,6 +244,38 @@ router.get('/results/summary', (req, res) => {
             candidates: results
         });
     });
+});
+
+// 10. Reset Election (Hackathon Demo Feature)
+router.post('/reset', (req, res) => {
+    try {
+        // 1. Clear Votes
+        db.serialize(() => {
+            db.run('DELETE FROM votes');
+            db.run('DELETE FROM audit_log');
+            db.run('UPDATE voters SET has_voted = 0');
+        });
+
+        // 2. Reset Blockchain
+        if (typeof Blockchain !== 'undefined') {
+            global.blockchain = new Blockchain();
+        } else {
+            // Fallback if Blockchain class not available
+            try {
+                const BlockchainClass = require('../blockchain/Blockchain');
+                global.blockchain = new BlockchainClass();
+            } catch (e) {
+                console.error("Blockchain reset failed:", e);
+            }
+        }
+
+        console.log("✅ ELECTION RESET COMPLETE");
+        res.json({ message: 'Election System Reset Successfully!' });
+
+    } catch (error) {
+        console.error("Reset Error:", error);
+        res.status(500).json({ error: 'Failed to reset election' });
+    }
 });
 
 module.exports = router;
