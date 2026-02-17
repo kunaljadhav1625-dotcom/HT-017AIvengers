@@ -1,5 +1,21 @@
 const express = require('express');
 const db = require('../models/database');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure Multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../../uploads/candidates');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage });
 const router = express.Router();
 
 // 1. Check Voter Status (New Endpoint for Home Page Logic)
@@ -39,18 +55,27 @@ router.get('/candidates', (req, res) => {
     });
 });
 
-// 3. Add Candidate (Admin) - RESTORED
-router.post('/candidates', (req, res) => {
-    const { name, party, state, city, village, image } = req.body;
+// 3. Add Candidate (Admin) - With File Upload
+router.post('/candidates', upload.single('image'), (req, res) => {
+    const { name, party, state, city, village } = req.body;
 
-    // Minimal validation
+    // Construct Image URL
+    let imageUrl = '';
+    if (req.file) {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        imageUrl = `${baseUrl}/uploads/candidates/${req.file.filename}`;
+    } else if (req.body.image) {
+        // Fallback to URL if provided in text field
+        imageUrl = req.body.image;
+    }
+
     if (!name || !party || !city || !state) {
         return res.status(400).json({ error: 'Name, Party, State, and City are required' });
     }
 
     db.run(
         'INSERT INTO candidates (name, party, state, city, village, image) VALUES (?, ?, ?, ?, ?, ?)',
-        [name, party, state, city, village || '', image || ''],
+        [name, party, state, city, village || '', imageUrl],
         function (err) {
             if (err) {
                 console.error(err);
@@ -132,6 +157,66 @@ router.post('/vote', (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Server error' });
     }
+});
+
+// 6. Update Candidate
+router.put('/candidates/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, party, state, city, village, image } = req.body;
+
+    db.run(
+        'UPDATE candidates SET name = ?, party = ?, state = ?, city = ?, village = ?, image = ? WHERE id = ?',
+        [name, party, state, city, village || '', image || '', id],
+        function (err) {
+            if (err) return res.status(500).json({ error: 'Failed to update candidate' });
+            if (this.changes === 0) return res.status(404).json({ error: 'Candidate not found' });
+            res.json({ message: 'Candidate updated successfully' });
+        }
+    );
+});
+
+// 7. Delete Candidate
+router.delete('/candidates/:id', (req, res) => {
+    const { id } = req.params;
+    db.run('DELETE FROM candidates WHERE id = ?', [id], function (err) {
+        if (err) return res.status(500).json({ error: 'Failed to delete candidate' });
+        if (this.changes === 0) return res.status(404).json({ error: 'Candidate not found' });
+        res.json({ message: 'Candidate deleted successfully' });
+    });
+});
+
+// 8. Get Election Results Summary (Aggregated Votes)
+router.get('/results/summary', (req, res) => {
+    const query = `
+        SELECT 
+            c.id, c.name, c.party, c.city, c.state, c.image,
+            COUNT(v.id) as voteCount
+        FROM candidates c
+        LEFT JOIN votes v ON c.id = v.candidate_id
+        GROUP BY c.id
+        ORDER BY voteCount DESC
+    `;
+
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+
+        // Calculate total votes
+        const totalVotes = rows.reduce((sum, r) => sum + r.voteCount, 0);
+
+        // Add percentage
+        const results = rows.map(r => ({
+            ...r,
+            percentage: totalVotes > 0 ? ((r.voteCount / totalVotes) * 100).toFixed(1) : 0
+        }));
+
+        res.json({
+            stats: {
+                totalVotes,
+                leadingCandidate: results.length > 0 ? results[0] : null
+            },
+            candidates: results
+        });
+    });
 });
 
 module.exports = router;

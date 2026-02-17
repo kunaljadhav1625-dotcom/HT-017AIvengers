@@ -14,7 +14,17 @@ export const adminLogin = (creds) => api.post('/auth/admin-login', creds);
 
 // Voting Flow
 export const getCandidates = (city) => api.get(`/candidates?city=${city || ''}`); // Allow empty city for all
-export const addCandidate = (data) => api.post('/candidates', data);
+export const addCandidate = (data) => {
+    // Check if data is FormData (for file upload)
+    if (data instanceof FormData) {
+        return api.post('/candidates', data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    }
+    return api.post('/candidates', data);
+};
+export const updateCandidate = (id, data) => api.put(`/candidates/${id}`, data);
+export const deleteCandidate = (id) => api.delete(`/candidates/${id}`);
 export const checkVoterStatus = (voterId) => api.get(`/status/${voterId}`); // New Status Check
 export const scanBiometric = (voterId, city) => api.post('/verify-biometric', { voterId, city });
 export const castVote = (candidateId, voterId) => api.post('/vote', { candidateId, voterId });
@@ -25,7 +35,7 @@ export const getCities = (state) => api.get(`/locations/cities?state=${state}`);
 export const getVillages = (city) => api.get(`/locations/villages?city=${city}`);
 
 // Results APIs
-export const getResults = () => api.get('/results');
+export const getResults = () => api.get('/results/summary');
 export const getBlockchain = () => api.get('/blockchain');
 export const verifyBlockchain = () => api.get('/blockchain/verify');
 export const tamperBlockchain = () => api.post('/admin/tamper');

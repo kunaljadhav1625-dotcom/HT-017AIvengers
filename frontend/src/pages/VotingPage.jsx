@@ -243,18 +243,27 @@ const VotingPage = () => {
         <div className="min-h-screen bg-gray-50 font-sans">
             <div className="container mx-auto px-4 py-8">
                 {/* Header with Voter Info */}
-                <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-6 mb-4 md:mb-0">
                         {voterData?.photoUrl && (
-                            <img src={voterData.photoUrl} alt="Voter" className="w-12 h-12 rounded-full border-2 border-blue-500" />
+                            <div className="relative">
+                                <img src={voterData.photoUrl} alt="Voter" className="w-16 h-16 rounded-full border-4 border-blue-50 shadow-md object-cover" />
+                                <div className="absolute bottom-0 right-0 bg-green-500 w-4 h-4 rounded-full border-2 border-white"></div>
+                            </div>
                         )}
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Hello, {voterData?.name || 'Voter'}</h1>
-                            <p className="text-sm text-gray-500">ID: {voterId} • {city}</p>
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">General Election 2026</p>
+                            <h1 className="text-2xl font-extrabold text-gray-800">Hello, {voterData?.name || 'Voter'}</h1>
+                            <p className="text-sm text-gray-500 font-medium">
+                                Voting for <span className="text-gray-800 font-bold">MLA</span> in <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700">{city}</span> Constituency
+                            </p>
                         </div>
                     </div>
-                    <div className="font-mono text-xl font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded">
-                        {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                    <div className="flex flex-col items-end">
+                        <p className="text-xs text-gray-400 font-bold uppercase mb-1">Time Remaining</p>
+                        <div className="font-mono text-3xl font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg tracking-wider tabular-nums">
+                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                        </div>
                     </div>
                 </div>
 

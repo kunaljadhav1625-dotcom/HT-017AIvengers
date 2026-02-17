@@ -99,8 +99,15 @@ const HomePage = () => {
                     alt="Indian Emblem"
                     className="w-24 h-24 mx-auto mb-4"
                 />
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">Bharat E-Voting</h1>
-                <p className="text-gray-600 mb-8">Secure • Transparent • Decentralized</p>
+                <div className="mb-6">
+                    <h1 className="text-4xl font-extrabold text-blue-900 tracking-tight">GENERAL ELECTION 2026</h1>
+                    <div className="bg-orange-100 text-orange-800 text-xs font-bold px-3 py-1 rounded-full inline-block mt-2 tracking-widest border border-orange-200">
+                        POST: MEMBER OF LEGISLATIVE ASSEMBLY (MLA)
+                    </div>
+                </div>
+                <p className="text-gray-500 mb-8 max-w-sm mx-auto">
+                    Secure, Transparent & Decentralized Voting System for the Modern Democracy of India.
+                </p>
 
                 <form onSubmit={handleStart} className="space-y-6 text-left">
                     <div>
