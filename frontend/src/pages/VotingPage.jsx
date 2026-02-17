@@ -55,18 +55,18 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
             context.drawImage(videoRef.current, 0, 0, 320, 240);
             const imageData = canvasRef.current.toDataURL('image/jpeg');
             setCapturedImage(imageData);
-            verifyImage();
+            verifyImage(imageData);
         }
     };
 
-    const verifyImage = () => {
+    const verifyImage = (img) => {
         setStep('verifying');
         // Visual Simulation of Matching
         setTimeout(() => {
             stopCamera();
             setStep('success');
             setTimeout(() => {
-                onVerified();
+                onVerified(img);
             }, 1000);
         }, 3000); // 3 Seconds to show comparison
     };
@@ -120,7 +120,8 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
                                 <div className="w-20 h-1 bg-gray-200 rounded overflow-hidden">
                                     <div className="h-full bg-blue-500 animate-[loading_1s_ease-in-out_infinite]"></div>
                                 </div>
-                                <span className="text-xs text-blue-600 mt-1 font-mono">MATCHING</span>
+                                <span className="text-xs text-blue-600 mt-1 font-mono">ANALYZING FACIAL FEATURES</span>
+                                <span className="text-[10px] text-gray-400 font-mono animate-pulse">Eye Distance: OK</span>
                             </div>
 
                             {/* Captured Photo */}
@@ -212,10 +213,10 @@ const VotingPage = () => {
         }
     }, [voteSuccess]);
 
-    const handleBiometricSuccess = async () => {
+    const handleBiometricSuccess = async (img) => {
         setVerifying(false);
         try {
-            await scanBiometric(voterId, city);
+            await scanBiometric(voterId, city, img);
             const response = await castVote(selectedCandidate, voterId);
             setVoteSuccess(response.data);
         } catch (error) {

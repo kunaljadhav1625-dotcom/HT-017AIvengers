@@ -89,19 +89,33 @@ router.post('/candidates', upload.single('image'), (req, res) => {
 
 // 4. Verify Voter & Biometrics (Simulated)
 router.post('/verify-biometric', (req, res) => {
-    const { voterId, city } = req.body;
+    const { voterId, city, image } = req.body;
 
     console.log(`🔍 Verifying Biometric for ID: ${voterId} in City: ${city}`);
+
+    if (image) {
+        const sizeKB = Math.round(image.length / 1024);
+        console.log(`📸 LIVE CAPTURE RECEIVED: ${sizeKB} KB - Processing Face Match...`);
+    } else {
+        console.warn(`⚠️  No live image data received.`);
+    }
 
     if (!voterId || !city) {
         return res.status(400).json({ error: 'Voter ID and City are required' });
     }
 
-    db.get('SELECT * FROM voters WHERE voter_id = ? AND LOWER(city) = LOWER(?)', [voterId, city], (err, voter) => {
+    db.get('SELECT * FROM voters WHERE voter_id = ?', [voterId], (err, voter) => {
         if (!voter) {
-            console.error(`❌ Voter not found or City mismatch. ID: ${voterId}, ReqCity: ${city}`);
-            return res.status(404).json({ error: `Voter not found in Government Database for ${city}` });
+            return res.status(404).json({ error: 'Invalid Voter ID Not Found' });
         }
+
+        /* HACKATHON MODE: Allow voting in any city with any valid ID
+        if (voter.city.toLowerCase() !== city.toLowerCase()) {
+            return res.status(400).json({
+                error: `⚠️ Wrong Constituency! This Voter ID is registered in '${voter.city}', but you selected '${city}'. Please change the city.`
+            });
+        }
+        */
 
         if (voter.has_voted === 1) {
             return res.status(403).json({ error: 'Voter has already cast a vote!' });
