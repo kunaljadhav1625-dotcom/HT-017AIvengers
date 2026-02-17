@@ -35,4 +35,7 @@ export const getBlockchain = () => api.get('/blockchain');
 export const verifyBlockchain = () => api.get('/blockchain/verify');
 export const getBlock = (index) => api.get(`/blockchain/block/${index}`);
 
+// Admin/Demo APIs
+export const tamperBlockchain = () => api.post('/admin/tamper');
+
 export default api;

@@ -5,11 +5,12 @@ require('dotenv').config();
 const Blockchain = require('./blockchain/Blockchain');
 const db = require('./models/database');
 
-// Routes (Placeholders for now)
+// Routes
 const authRoutes = require('./routes/auth');
 const voteRoutes = require('./routes/vote');
 const resultsRoutes = require('./routes/results');
 const blockchainRoutes = require('./routes/blockchain');
+const adminRoutes = require('./routes/admin'); // Import admin routes
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', voteRoutes);
 app.use('/api', resultsRoutes);
 app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/admin', adminRoutes); // Use admin routes
 
 // Health check
 app.get('/api/health', (req, res) => {
