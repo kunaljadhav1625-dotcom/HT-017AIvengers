@@ -81,7 +81,9 @@ function initDB() {
             id INT AUTO_INCREMENT PRIMARY KEY,
             voter_id VARCHAR(255) UNIQUE NOT NULL,
             name VARCHAR(255) NOT NULL,
+            state VARCHAR(255) NOT NULL,
             city VARCHAR(255) NOT NULL,
+            village VARCHAR(255),
             biometric_hash VARCHAR(255) NOT NULL,
             has_voted INT DEFAULT 0,
             password VARCHAR(255), -- Kept for legacy compatibility if needed
@@ -97,7 +99,9 @@ function initDB() {
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
             party VARCHAR(255) NOT NULL,
+            state VARCHAR(255) NOT NULL,
             city VARCHAR(255) NOT NULL,
+            village VARCHAR(255),
             image TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
@@ -116,6 +120,12 @@ function initDB() {
             user_id VARCHAR(255),
             details TEXT,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+    `CREATE TABLE IF NOT EXISTS locations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            state VARCHAR(255) NOT NULL,
+            city VARCHAR(255) NOT NULL,
+            village VARCHAR(255) NOT NULL
         )`
   ];
 

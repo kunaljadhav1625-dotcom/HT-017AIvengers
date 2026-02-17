@@ -25,24 +25,6 @@ router.get('/candidates', (req, res) => {
     });
 });
 
-// Add NEW Candidate (Admin Only)
-router.post('/candidates', (req, res) => {
-    const { name, party, city, image } = req.body;
-
-    if (!name || !party || !city) {
-        return res.status(400).json({ error: 'Name, Party, and City are required' });
-    }
-
-    db.run(
-        'INSERT INTO candidates (name, party, city, image) VALUES (?, ?, ?, ?)',
-        [name, party, city, image || ''],
-        function (err) {
-            if (err) return res.status(500).json({ error: 'Failed to add candidate' });
-            res.json({ message: 'Candidate added successfully', id: this.lastID });
-        }
-    );
-});
-
 // Verify Voter & Biometrics (Simulated)
 router.post('/verify-biometric', (req, res) => {
     // ... existing Verify logic ...
