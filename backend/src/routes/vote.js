@@ -192,19 +192,38 @@ router.delete('/candidates/:id', (req, res) => {
     });
 });
 
-// 8. Get Election Results Summary (Aggregated Votes)
+// 8. Get Distinct Election Cities
+router.get('/results/cities', (req, res) => {
+    db.all('SELECT DISTINCT city FROM candidates ORDER BY city', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+        res.json(rows.map(r => r.city));
+    });
+});
+
+// 9. Get Election Results Summary (Aggregated Votes)
 router.get('/results/summary', (req, res) => {
-    const query = `
+    const { city } = req.query;
+
+    let query = `
         SELECT 
             c.id, c.name, c.party, c.city, c.state, c.image,
             COUNT(v.id) as voteCount
         FROM candidates c
         LEFT JOIN votes v ON c.id = v.candidate_id
+    `;
+
+    const params = [];
+    if (city && city !== 'All') {
+        query += ` WHERE c.city = ? `;
+        params.push(city);
+    }
+
+    query += `
         GROUP BY c.id
         ORDER BY voteCount DESC
     `;
 
-    db.all(query, [], (err, rows) => {
+    db.all(query, params, (err, rows) => {
         if (err) return res.status(500).json({ error: 'Database error' });
 
         // Calculate total votes
