@@ -3,6 +3,7 @@ const db = require('../models/database');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process'); // Added for Python script execution
 const Blockchain = require('../blockchain/Blockchain'); // Required for Reset Logic
 
 // Configure Multer
@@ -87,18 +88,11 @@ router.post('/candidates', upload.single('image'), (req, res) => {
     );
 });
 
-// 4. Verify Voter & Biometrics (Simulated)
+// 4. Verify Voter & Biometrics (Simulated + Python)
 router.post('/verify-biometric', (req, res) => {
     const { voterId, city, image } = req.body;
 
     console.log(`🔍 Verifying Biometric for ID: ${voterId} in City: ${city}`);
-
-    if (image) {
-        const sizeKB = Math.round(image.length / 1024);
-        console.log(`📸 LIVE CAPTURE RECEIVED: ${sizeKB} KB - Processing Face Match...`);
-    } else {
-        console.warn(`⚠️  No live image data received.`);
-    }
 
     if (!voterId || !city) {
         return res.status(400).json({ error: 'Voter ID and City are required' });
@@ -109,23 +103,68 @@ router.post('/verify-biometric', (req, res) => {
             return res.status(404).json({ error: 'Invalid Voter ID Not Found' });
         }
 
-        /* HACKATHON MODE: Allow voting in any city with any valid ID
-        if (voter.city.toLowerCase() !== city.toLowerCase()) {
-            return res.status(400).json({
-                error: `⚠️ Wrong Constituency! This Voter ID is registered in '${voter.city}', but you selected '${city}'. Please change the city.`
-            });
-        }
-        */
-
         if (voter.has_voted === 1) {
             return res.status(403).json({ error: 'Voter has already cast a vote!' });
         }
 
-        res.json({
-            success: true,
-            message: "Biometric Verification Successful (Face ID Matched)",
-            voterName: voter.name
-        });
+        // PYTHON FACE VERIFICATION
+        if (image && voter.biometric_hash) {
+            const base64Data = image.replace(/^data:image\/jpeg;base64,/, "");
+            const cleanBase64 = base64Data.replace(/^data:image\/.*?;base64,/, "");
+
+            const tempPath = path.join(__dirname, '../../temp', `live_${voterId}_${Date.now()}.jpg`);
+
+            if (!fs.existsSync(path.dirname(tempPath))) fs.mkdirSync(path.dirname(tempPath), { recursive: true });
+
+            try {
+                fs.writeFileSync(tempPath, cleanBase64, 'base64');
+
+                const filename = voter.biometric_hash.split('/').pop();
+                const storedPath = path.join(__dirname, '../../uploads/voters', decodeURIComponent(filename));
+                const scriptPath = path.join(__dirname, '../../scripts/verify_face.py');
+
+                console.log(`🐍 Executing Python: ${scriptPath}`);
+                console.log(`   Ref: ${storedPath}`);
+                console.log(`   Live: ${tempPath}`);
+
+                exec(`python "${scriptPath}" "${storedPath}" "${tempPath}"`, (err, stdout, stderr) => {
+                    fs.unlink(tempPath, () => { }); // Cleanup
+
+                    if (err) {
+                        console.error("❌ Python Script Error:", err);
+                        // Fallback for demo relying on Node logging? 
+                        return res.status(500).json({ error: "Biometric System Error (Python Engine)" });
+                    }
+                    try {
+                        console.log("🐍 Python Output:", stdout.trim());
+                        const result = JSON.parse(stdout.trim());
+
+                        if (result.match) {
+                            res.json({
+                                success: true,
+                                message: "Biometric Verified Successfully",
+                                voterName: voter.name,
+                                score: result.score
+                            });
+                        } else {
+                            res.status(401).json({
+                                error: result.error || result.msg || `Face Mismatch! Score: ${result.score?.toFixed(2) || 'N/A'}`
+                            });
+                        }
+                    } catch (e) {
+                        console.error("JSON Parse Error:", e, stdout);
+                        res.status(500).json({ error: "Verification Processing Error" });
+                    }
+                });
+            } catch (e) {
+                console.error("FS Error:", e);
+                res.status(500).json({ error: "Image Processing Error" });
+            }
+        } else {
+            // Fallback if no image (Testing only)
+            console.warn("⚠️  Bypassing verification (No Image Provided)");
+            res.json({ success: true, message: "Dev Bypass: Verified", voterName: voter.name });
+        }
     });
 });
 

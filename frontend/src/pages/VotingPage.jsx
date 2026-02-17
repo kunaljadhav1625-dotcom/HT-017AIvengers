@@ -6,6 +6,7 @@ import { Fingerprint, ScanFace, CheckCircle, Camera, Clock, BadgeCheck, XCircle 
 // Biometric Modal Component
 const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
     const [step, setStep] = useState('idle'); // idle, camera_init, scanning, verifying, success
+    const [failMessage, setFailMessage] = useState('');
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [stream, setStream] = useState(null);
@@ -59,16 +60,31 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
         }
     };
 
-    const verifyImage = (img) => {
+    const verifyImage = async (img) => {
         setStep('verifying');
-        // Visual Simulation of Matching
-        setTimeout(() => {
-            stopCamera();
+        setFailMessage('');
+
+        // Minimum visual delay for "Analysis" feel
+        await new Promise(r => setTimeout(r, 2000));
+
+        try {
+            await onVerified(img); // Wait for backend check
             setStep('success');
             setTimeout(() => {
-                onVerified(img);
-            }, 1000);
-        }, 3000); // 3 Seconds to show comparison
+                onClose(); // Close after showing success
+            }, 2000);
+        } catch (err) {
+            console.error(err);
+            setFailMessage(err.response?.data?.error || "Verification Failed");
+            setStep('failed');
+            // Allow retry after delay
+            setTimeout(() => {
+                setStep('scanning');
+                setCapturedImage(null);
+                setFailMessage('');
+                startCamera();
+            }, 4000);
+        }
     };
 
     if (!isOpen) return null;
@@ -95,6 +111,8 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
                         <div className="relative mb-6 rounded-xl overflow-hidden border-4 border-blue-500 shadow-xl bg-black w-[320px] h-[240px]">
                             <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
                             <div className="absolute inset-0 border-2 border-white/40 rounded-full w-40 h-52 m-auto shadow-[0_0_100px_rgba(0,0,0,0.5)_inset]"></div>
+                            {/* Scanning Line */}
+                            <div className="absolute top-0 left-0 w-full h-1 bg-green-400 opacity-50 animate-[scan_2s_linear_infinite]"></div>
                         </div>
                         <button onClick={handleCapture} className="btn bg-blue-600 text-white w-full py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2">
                             <Camera className="w-5 h-5" /> Capture & Verify
@@ -105,14 +123,13 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
                 {/* 3. VERIFYING (COMPARISON UI) */}
                 {step === 'verifying' && (
                     <div className="py-8">
-                        <h3 className="text-xl font-bold text-gray-800 mb-6">Matching Biometrics...</h3>
+                        <h3 className="text-xl font-bold text-gray-800 mb-6">Analyzing Facial Features...</h3>
 
                         <div className="flex justify-center items-center gap-4 mb-8">
                             {/* Stored Photo */}
                             <div className="relative">
-                                <p className="text-xs text-gray-500 mb-1 font-bold">STORED ID (GOVT)</p>
+                                <p className="text-xs text-gray-500 mb-1 font-bold">STORED ID</p>
                                 <img src={storedPhoto || 'https://via.placeholder.com/150'} alt="Stored" className="w-24 h-24 rounded-full border-4 border-gray-300 object-cover" />
-                                <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1 rounded-full"><BadgeCheck className="w-4 h-4" /></div>
                             </div>
 
                             {/* Animation */}
@@ -120,8 +137,7 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
                                 <div className="w-20 h-1 bg-gray-200 rounded overflow-hidden">
                                     <div className="h-full bg-blue-500 animate-[loading_1s_ease-in-out_infinite]"></div>
                                 </div>
-                                <span className="text-xs text-blue-600 mt-1 font-mono">ANALYZING FACIAL FEATURES</span>
-                                <span className="text-[10px] text-gray-400 font-mono animate-pulse">Eye Distance: OK</span>
+                                <span className="text-[10px] text-gray-400 font-mono animate-pulse mt-2">Comparing Vectors...</span>
                             </div>
 
                             {/* Captured Photo */}
@@ -140,7 +156,19 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
                             <CheckCircle className="w-10 h-10 text-green-600" />
                         </div>
                         <h3 className="text-2xl font-bold text-green-600">Identity Verified!</h3>
-                        <p className="text-gray-500">Face Match: 98% Compatibility</p>
+                        <p className="text-gray-500">Access Granted.</p>
+                    </div>
+                )}
+
+                {/* 5. FAILED */}
+                {step === 'failed' && (
+                    <div className="py-10">
+                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse">
+                            <XCircle className="w-10 h-10 text-red-600" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-red-600">Verification Failed</h3>
+                        <p className="text-gray-700 mt-2 font-medium px-4">{failMessage || "Face does not match records."}</p>
+                        <p className="text-xs text-gray-400 mt-4">Retrying camera in 4s...</p>
                     </div>
                 )}
 
@@ -214,14 +242,11 @@ const VotingPage = () => {
     }, [voteSuccess]);
 
     const handleBiometricSuccess = async (img) => {
-        setVerifying(false);
-        try {
-            await scanBiometric(voterId, city, img);
-            const response = await castVote(selectedCandidate, voterId);
-            setVoteSuccess(response.data);
-        } catch (error) {
-            alert(error.response?.data?.error || "Verification Failed");
-        }
+        // setVerifying(false); // Internal modal handles close
+        await scanBiometric(voterId, city, img);
+        // If successful, cast vote immediately
+        const response = await castVote(selectedCandidate, voterId);
+        setVoteSuccess(response.data);
     };
 
     if (voteSuccess) {
