@@ -37,8 +37,11 @@ app.get('/', (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📂 Serving images at http://localhost:${PORT}/uploads`);
-    console.log(`chains initialized with ${global.blockchain.chain.length} blocks`);
+// Start Server
+const HOST_IP = process.env.HOST_IP || 'localhost';
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on http://${HOST_IP}:${PORT}`);
+    console.log(`📂 Serving images at http://${HOST_IP}:${PORT}/uploads`);
+    console.log(`⛓️  Blockchain initialized with ${global.blockchain.getTotalBlocks()} blocks`);
 });
