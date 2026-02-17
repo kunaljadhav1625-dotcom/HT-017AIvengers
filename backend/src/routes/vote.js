@@ -90,9 +90,16 @@ router.post('/candidates', upload.single('image'), (req, res) => {
 router.post('/verify-biometric', (req, res) => {
     const { voterId, city } = req.body;
 
-    db.get('SELECT * FROM voters WHERE voter_id = ? AND city = ?', [voterId, city], (err, voter) => {
+    console.log(`🔍 Verifying Biometric for ID: ${voterId} in City: ${city}`);
+
+    if (!voterId || !city) {
+        return res.status(400).json({ error: 'Voter ID and City are required' });
+    }
+
+    db.get('SELECT * FROM voters WHERE voter_id = ? AND LOWER(city) = LOWER(?)', [voterId, city], (err, voter) => {
         if (!voter) {
-            return res.status(404).json({ error: 'Voter not found in Government Database for this City' });
+            console.error(`❌ Voter not found or City mismatch. ID: ${voterId}, ReqCity: ${city}`);
+            return res.status(404).json({ error: `Voter not found in Government Database for ${city}` });
         }
 
         if (voter.has_voted === 1) {
