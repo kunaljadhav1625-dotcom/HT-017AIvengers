@@ -28,6 +28,7 @@ export const deleteCandidate = (id) => api.delete(`/candidates/${id}`);
 export const checkVoterStatus = (voterId) => api.get(`/status/${voterId}`); // New Status Check
 export const scanBiometric = (voterId, city, image) => api.post('/verify-biometric', { voterId, city, image });
 export const castVote = (candidateId, voterId) => api.post('/vote', { candidateId, voterId });
+export const registerVoter = (data) => api.post('/voters', data);
 
 // Location APIs
 export const getStates = () => api.get('/locations/states');

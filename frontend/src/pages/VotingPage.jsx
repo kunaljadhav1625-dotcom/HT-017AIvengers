@@ -53,7 +53,7 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
     const handleCapture = () => {
         if (videoRef.current && canvasRef.current) {
             const context = canvasRef.current.getContext('2d');
-            context.drawImage(videoRef.current, 0, 0, 320, 240);
+            context.drawImage(videoRef.current, 0, 0, 640, 480);
             const imageData = canvasRef.current.toDataURL('image/jpeg');
             setCapturedImage(imageData);
             verifyImage(imageData);
@@ -172,7 +172,7 @@ const BiometricModal = ({ isOpen, onClose, onVerified, storedPhoto }) => {
                     </div>
                 )}
 
-                <canvas ref={canvasRef} width="320" height="240" className="hidden"></canvas>
+                <canvas ref={canvasRef} width="640" height="480" className="hidden"></canvas>
             </div>
         </div>
     );

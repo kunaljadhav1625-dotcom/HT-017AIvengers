@@ -88,7 +88,56 @@ router.post('/candidates', upload.single('image'), (req, res) => {
     );
 });
 
-// 4. Verify Voter & Biometrics (Simulated + Python)
+// 4. Register Voter (Admin)
+router.post('/voters', (req, res) => {
+    const { name, state, city, village, image } = req.body;
+
+    if (!name || !state || !city || !image) {
+        return res.status(400).json({ error: 'Name, State, City and Face image are required' });
+    }
+
+    // Generate Unique Voter ID
+    const generateVoterId = () => {
+        return 'IND-' + Math.floor(100000000 + Math.random() * 900000000); // 9 digit unique ID
+    };
+
+    const voterId = generateVoterId();
+
+    // Save Base64 Image
+    try {
+        const base64Data = image.replace(/^data:image\/jpeg;base64,/, "").replace(/^data:image\/png;base64,/, "");
+        const fileName = `${voterId}_${Date.now()}.jpg`;
+        const dir = path.join(__dirname, '../../uploads/voters');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        const filePath = path.join(dir, fileName);
+        fs.writeFileSync(filePath, base64Data, 'base64');
+
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const imageUrl = `${baseUrl}/uploads/voters/${fileName}`;
+
+        db.run(
+            'INSERT INTO voters (voter_id, name, state, city, village, biometric_hash) VALUES (?, ?, ?, ?, ?, ?)',
+            [voterId, name, state, city, village || '', imageUrl],
+            function (err) {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ error: 'Failed to register voter' });
+                }
+                res.json({
+                    message: 'Voter registered successfully',
+                    voterId: voterId,
+                    name: name
+                });
+            }
+        );
+    } catch (error) {
+        console.error("Voter reg error:", error);
+        res.status(500).json({ error: 'Failed to process voter image' });
+    }
+});
+
+// 5. Verify Voter & Biometrics (Simulated + Python)
 router.post('/verify-biometric', (req, res) => {
     const { voterId, city, image } = req.body;
 

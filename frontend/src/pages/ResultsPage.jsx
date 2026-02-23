@@ -2,15 +2,17 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getResults, deleteCandidate } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Trash2, LogOut, TrendingUp, Award, MapPin, Users, Activity, Crown, Search, Filter, ShieldCheck, Zap, RotateCcw } from 'lucide-react';
+import { Trash2, LogOut, TrendingUp, Award, MapPin, Users, Activity, Crown, Search, Filter, ShieldCheck, Zap, RotateCcw, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AddCandidateForm from '../components/admin/AddCandidateForm';
+import RegisterVoterForm from '../components/admin/RegisterVoterForm';
 
 const ResultsPage = () => {
     const [stats, setStats] = useState({ totalVotes: 0, leadingCandidate: null });
     const [candidates, setCandidates] = useState([]);
     const [showForm, setShowForm] = useState(false);
+    const [showVoterForm, setShowVoterForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [cities, setCities] = useState([]);
     const [selectedCity, setSelectedCity] = useState('All');
@@ -357,13 +359,22 @@ const ResultsPage = () => {
                                 />
                             </div>
                             {user?.role === 'admin' && (
-                                <button
-                                    onClick={() => setShowForm(!showForm)}
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
-                                >
-                                    {showForm ? <Trash2 className="w-4 h-4" /> : <Award className="w-4 h-4" />}
-                                    {showForm ? 'Close' : 'Add New'}
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => { setShowVoterForm(!showVoterForm); setShowForm(false); }}
+                                        className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all hover:-translate-y-0.5 shadow-lg ${showVoterForm ? 'bg-slate-700 text-white shadow-slate-500/20' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'}`}
+                                    >
+                                        <UserPlus className="w-4 h-4" />
+                                        {showVoterForm ? 'Close Registration' : 'Register Voter'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowForm(!showForm); setShowVoterForm(false); }}
+                                        className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-all hover:-translate-y-0.5 shadow-lg ${showForm ? 'bg-slate-700 text-white shadow-slate-500/20' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'}`}
+                                    >
+                                        <Award className="w-4 h-4" />
+                                        {showForm ? 'Close' : 'Add Candidate'}
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -371,6 +382,12 @@ const ResultsPage = () => {
                     {showForm && (
                         <div className="p-8 bg-indigo-900/10 border-b border-white/5 animate-in fade-in slide-in-from-top-4">
                             <AddCandidateForm onSuccess={() => { fetchData(); setShowForm(false); }} />
+                        </div>
+                    )}
+
+                    {showVoterForm && (
+                        <div className="p-8 bg-emerald-900/10 border-b border-white/5 animate-in fade-in slide-in-from-top-4">
+                            <RegisterVoterForm onSuccess={() => { fetchData(); }} />
                         </div>
                     )}
 
