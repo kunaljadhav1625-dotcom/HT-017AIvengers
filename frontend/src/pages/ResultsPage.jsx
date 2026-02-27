@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getResults, deleteCandidate } from '../services/api';
+import { getResults, deleteCandidate, getResultsCities, resetElection } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { Trash2, LogOut, TrendingUp, Award, MapPin, Users, Activity, Crown, Search, Filter, ShieldCheck, Zap, RotateCcw, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +21,7 @@ const ResultsPage = () => {
     // Fetch Data
     const fetchData = async () => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/results/summary?city=${selectedCity}`);
+            const res = await getResults(selectedCity === 'All' ? '' : selectedCity);
             setStats(res.data.stats);
             setCandidates(res.data.candidates);
         } catch (err) {
@@ -32,7 +31,7 @@ const ResultsPage = () => {
 
     // Fetch Cities Once
     useEffect(() => {
-        axios.get('http://localhost:5000/api/results/cities')
+        getResultsCities()
             .then(res => setCities(['All', ...res.data]))
             .catch(err => console.error(err));
     }, []);
@@ -57,7 +56,7 @@ const ResultsPage = () => {
     const handleReset = async () => {
         if (window.confirm("⚠️ DANGER ZONE: This will RESET the entire election.\\n\\nALL VOTES and BLOCKCHAIN HISTORY will be deleted.\\n\\nDo you want to proceed for a fresh demo?")) {
             try {
-                await axios.post('http://localhost:5000/api/vote/reset');
+                await resetElection();
                 alert("Election Reset Successfully! You can now start a fresh demo.");
                 fetchData();
             } catch (err) {

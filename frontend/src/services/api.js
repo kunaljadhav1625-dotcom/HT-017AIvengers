@@ -36,7 +36,9 @@ export const getCities = (state) => api.get(`/locations/cities?state=${state}`);
 export const getVillages = (city) => api.get(`/locations/villages?city=${city}`);
 
 // Results APIs
-export const getResults = () => api.get('/results/summary');
+export const getResults = (city) => api.get(`/results/summary${city ? `?city=${city}` : ''}`);
+export const getResultsCities = () => api.get('/results/cities');
+export const resetElection = () => api.post('/vote/reset');
 export const getBlockchain = () => api.get('/blockchain');
 export const verifyBlockchain = () => api.get('/blockchain/verify');
 export const tamperBlockchain = () => api.post('/admin/tamper');
